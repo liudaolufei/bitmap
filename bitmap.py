@@ -11,37 +11,50 @@
 from array import array
 
 
-class BitMap(object):
-
-    BIT_CNT = [bin(i).count(1) for i in range(256)]
+class BitMap:
+ 
+    BITMASK = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80]
+    BIT_CNT = [bin(i).count('1') for i in range(256)]
 
     def __init__(self, maxnum=1):
         self.nbytes = (maxnum + 7) // 8
-        self.bitmap = array.array('B', [0 for i in range(self.nbytes)])
+        self.bitmap = array('B', [0 for i in range(self.nbytes)])
 
     def __or__(self, pos):
         return self.bitmap[pos // 8] | self.BITMASK[pos % 8]
 
     def __ior__(self, pos):
         self.bitmap[pos // 8] |= self.BITMASK[pos % 8]
+        return self
 
     def __and__(self, pos):
         return self.bitmap[pos // 8] & ~self.BITMASK[pos % 8]
 
     def __iand__(self, pos):
         self.bitmap[pos // 8] &= ~self.BITMASK[pos % 8]
+        return self
 
-    def __or__(self, pos):
-        return self.bitmap[pos // 8] ^ self.BITMASK[pos % 8]
+    def __xor__(self, pos):
+        return 1 if self.bitmap[pos // 8] ^ self.BITMASK[pos % 8] else 0
 
     def __ixor__(self, pos):
         self.bitmap[pos // 8] ^= self.BITMASK[pos % 8]
+        return self
 
     def __len__(self):
         return self.nbytes * 8
 
     def count(self):
         return sum(self.BIT_CNT[x] for x in self.bitmap)
+
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        for i in range(self.nbytes, -1, -1):
+            for j in bin(self.bitmap[i])[2:][::-1]:
+                yield int(j)
+
 
     def any(self):
         """
