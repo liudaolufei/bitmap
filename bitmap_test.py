@@ -10,8 +10,10 @@ class BitMapTest(unittest.TestCase):
         bp |= 12
         bp |= 13
         bp |= 14
-        bp &= 12
-        print(bp)
+        print(bp | 12)
+        print(bp | 13)
+        print(bp | 14)
+        print(bp | 15)
         print(bp.count())
         bp &= 13
         print(bp)
