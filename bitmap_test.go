@@ -75,7 +75,12 @@ func TestLen(t *testing.T) {
 	b.Add(2)
 	b.Add(10000)
 	if b.Len() != 4 {
-		t.Errorf("TestLen failed.")
+		t.Errorf("TestLen Add failed.")
+	}
+	b.Remove(2)
+	b.Remove((3))
+	if b.Len() != 3 {
+		t.Errorf("TestLen Remove failed.")
 	}
 }
 

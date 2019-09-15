@@ -8,7 +8,7 @@ import (
 type bitInt uint
 
 const (
-	bitSize    = 32 << (^uint(0) >> 63)
+	bitSize    = 32 << (^bitInt(0) >> 63)
 	bitmapSize = 4
 )
 
@@ -33,7 +33,7 @@ func (b *Bitmap) String() string {
 	for i, word := range b.words {
 		if word != 0 {
 			for j := 0; j < bitSize; j++ {
-				if word&(1<<uint(j)) != 0 {
+				if word&(1<<bitInt(j)) != 0 {
 					if buf.Len() > len("{") {
 						buf.WriteByte(' ')
 					}
@@ -56,7 +56,7 @@ func (b *Bitmap) Has(x int) bool {
 	if x < 0 {
 		return false
 	}
-	word, bit := x/bitSize, uint(x%bitSize)
+	word, bit := x/bitSize, bitInt(x%bitSize)
 	return word < len(b.words) && b.words[word]&(1<<bit) != 0
 }
 
@@ -65,7 +65,7 @@ func (b *Bitmap) Add(x int) {
 	if x < 0 {
 		return
 	}
-	word, bit := x/bitSize, uint(x%bitSize)
+	word, bit := x/bitSize, bitInt(x%bitSize)
 	if word >= len(b.words) {
 		b.words = append(b.words, make([]bitInt, word+1-len(b.words))...)
 	}
@@ -81,7 +81,7 @@ func (b *Bitmap) Remove(x int) {
 	if x < 0 {
 		return
 	}
-	word, bit := x/bitSize, uint(x%bitSize)
+	word, bit := x/bitSize, bitInt(x%bitSize)
 	if word < len(b.words) {
 		num := bitInt(1 << bit)
 		if b.words[word]&num != 0 {
