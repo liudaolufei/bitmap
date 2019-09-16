@@ -37,10 +37,10 @@ func New() *NBitmap {
 }
 
 // String return formated string of bitmap
-func (b *NBitmap) String() string {
+func (n *NBitmap) String() string {
 	var buf bytes.Buffer
 	buf.WriteByte('{')
-	for i, word := range b.words {
+	for i, word := range n.words {
 		if word != 0 {
 			for j := 0; j < bitSize; j++ {
 				if word&(1<<bitInt(j)) != 0 {
@@ -57,118 +57,296 @@ func (b *NBitmap) String() string {
 }
 
 // Len return numbers in bitmap
-func (b *NBitmap) Len() int {
-	return b.len
+func (n *NBitmap) Len() int {
+	return n.len
 }
 
 // Has return true if x is in the bitmap
-func (b *NBitmap) Has(x int) bool {
+func (n *NBitmap) Has(x int) bool {
 	if x < 0 {
 		return false
 	}
 	word, bit := x/bitSize, bitInt(x%bitSize)
-	return word < len(b.words) && b.words[word]&(1<<bit) != 0
+	return word < len(n.words) && n.words[word]&(1<<bit) != 0
 }
 
 // Add add x to the bitmap
-func (b *NBitmap) Add(x int) {
+func (n *NBitmap) Add(x int) {
 	if x < 0 {
 		return
 	}
 	word, bit := x/bitSize, bitInt(x%bitSize)
-	if word >= len(b.words) {
-		b.words = append(b.words, make([]bitInt, word+1-len(b.words))...)
+	if word >= len(n.words) {
+		n.words = append(n.words, make([]bitInt, word+1-len(n.words))...)
 	}
 	num := bitInt(1 << bit)
-	if b.words[word]&num == 0 {
-		b.len++
-		b.words[word] |= num
+	if n.words[word]&num == 0 {
+		n.len++
+		n.words[word] |= num
 	}
 }
 
 // Remove remove x in bitmap
-func (b *NBitmap) Remove(x int) {
+func (n *NBitmap) Remove(x int) {
 	if x < 0 {
 		return
 	}
 	word, bit := x/bitSize, bitInt(x%bitSize)
-	if word < len(b.words) {
+	if word < len(n.words) {
 		num := bitInt(1 << bit)
-		if b.words[word]&num != 0 {
-			b.len--
-			b.words[word] &^= num
+		if n.words[word]&num != 0 {
+			n.len--
+			n.words[word] &^= num
 		}
 	}
 }
 
 // Clear make the bitmap empty
-func (b *NBitmap) Clear() {
-	*b = *New()
+func (n *NBitmap) Clear() {
+	*n = *New()
 }
 
 // Copy return a copy bitmap
-func (b *NBitmap) Copy() *NBitmap {
+func (n *NBitmap) Copy() *NBitmap {
 	new := NBitmap{}
-	new.len = b.len
-	new.words = make([]bitInt, len(b.words))
-	copy(new.words, b.words)
+	new.len = n.len
+	new.words = make([]bitInt, len(n.words))
+	copy(new.words, n.words)
 	return &new
 }
 
-// Union b = b | c
-// elements in b or c
-func (b *NBitmap) Union(c *NBitmap) {
+// Union n = n | c
+// elements in n or c
+func (n *NBitmap) Union(c *NBitmap) {
 	length := 0
 	for i, cword := range c.words {
-		if i >= len(b.words) {
+		if i >= len(n.words) {
 			length = i
 			break
 		}
-		b.words[i] |= cword
+		n.words[i] |= cword
 	}
 	if length != 0 {
-		b.words = append(b.words, c.words[length:]...)
+		n.words = append(n.words, c.words[length:]...)
 	}
 }
 
-// Intersect b = b & c
-// elements both in b and c
-func (b *NBitmap) Intersect(c *NBitmap) {
+// Intersect n = n & c
+// elements both in n and c
+func (n *NBitmap) Intersect(c *NBitmap) {
 	for i, cwords := range c.words {
-		if i >= len(b.words) {
+		if i >= len(n.words) {
 			break
 		}
-		b.words[i] &= cwords
+		n.words[i] &= cwords
 	}
-	if len(c.words) < len(b.words) {
-		b.words = b.words[:len(c.words)]
+	if len(c.words) < len(n.words) {
+		n.words = n.words[:len(c.words)]
 	}
 }
 
-// Except b = b - c
-// elements only in b
-func (b *NBitmap) Except(c *NBitmap) {
+// Except n = n - c
+// elements only in n
+func (n *NBitmap) Except(c *NBitmap) {
 	for i, cwords := range c.words {
-		if i >= len(b.words) {
+		if i >= len(n.words) {
 			break
 		}
-		b.words[i] &^= cwords
+		n.words[i] &^= cwords
 	}
 }
 
-// SymExcept b = (b - c) | (c - b)
-// elements only in b or only in c
-func (b *NBitmap) SymExcept(c *NBitmap) {
+// SymExcept n = (n - c) | (c - n)
+// elements only in n or only in c
+func (n *NBitmap) SymExcept(c *NBitmap) {
 	length := 0
 	for i, cwords := range c.words {
-		if i >= len(b.words) {
+		if i >= len(n.words) {
 			length = i
 			break
 		}
-		b.words[i] = (b.words[i] &^ cwords) | (cwords &^ b.words[i])
+		n.words[i] = (n.words[i] &^ cwords) | (cwords &^ n.words[i])
 	}
 	if length != 0 {
-		b.words = append(b.words, c.words[length:]...)
+		n.words = append(n.words, c.words[length:]...)
+	}
+}
+
+// RBitmap is a bitSet count in [start, end)
+type RBitmap struct {
+	len   int
+	start int
+	end   int
+	words []bitInt
+}
+
+// NewR return a new bitmap, count in [start, end)
+func NewR(start int, end int) *RBitmap {
+	if start >= end {
+		return nil
+	}
+	return &RBitmap{
+		len:   0,
+		start: start,
+		end:   end,
+		words: make([]bitInt, bitmapSize),
+	}
+}
+
+// String return formated string of bitmap
+func (r *RBitmap) String() string {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, word := range r.words {
+		if word != 0 {
+			for j := 0; j < bitSize; j++ {
+				if word&(1<<bitInt(j)) != 0 {
+					if buf.Len() > len("{") {
+						buf.WriteByte(' ')
+					}
+					fmt.Fprintf(&buf, "%d", r.start+bitSize*i+j)
+				}
+			}
+		}
+	}
+	buf.WriteByte('}')
+	return buf.String()
+}
+
+// Len return numbers in bitmap
+func (r *RBitmap) Len() int {
+	return r.len
+}
+
+// Has return true if x is in the bitmap
+func (r *RBitmap) Has(x int) bool {
+	if x < r.start || x >= r.end {
+		return false
+	}
+	x -= r.start
+	word, bit := x/bitSize, bitInt(x%bitSize)
+	return word < len(r.words) && r.words[word]&(1<<bit) != 0
+}
+
+// Add add x to the bitmap
+func (r *RBitmap) Add(x int) {
+	if x < r.start || x >= r.end {
+		return
+	}
+	x -= r.start
+	word, bit := x/bitSize, bitInt(x%bitSize)
+	if word >= len(r.words) {
+		r.words = append(r.words, make([]bitInt, word+1-len(r.words))...)
+	}
+	num := bitInt(1 << bit)
+	if r.words[word]&num == 0 {
+		r.len++
+		r.words[word] |= num
+	}
+}
+
+// Remove remove x in bitmap
+func (r *RBitmap) Remove(x int) {
+	if x < r.start || x >= r.end {
+		return
+	}
+	x -= r.start
+	word, bit := x/bitSize, bitInt(x%bitSize)
+	if word < len(r.words) {
+		num := bitInt(1 << bit)
+		if r.words[word]&num != 0 {
+			r.len--
+			r.words[word] &^= num
+		}
+	}
+}
+
+// Clear make the bitmap empty
+func (r *RBitmap) Clear() {
+	*r = *NewR(r.start, r.end)
+}
+
+// Copy return a copy bitmap
+func (r *RBitmap) Copy() *RBitmap {
+	new := RBitmap{}
+	new.len = r.len
+	new.start = r.start
+	new.end = r.end
+	new.words = make([]bitInt, len(r.words))
+	copy(new.words, r.words)
+	return &new
+}
+
+// Union r = r | c
+// elements in r or c
+// r must have the same range of c
+func (r *RBitmap) Union(c *RBitmap) {
+	if r.start != c.start || r.end != c.end {
+		return
+	}
+	length := 0
+	for i, cword := range c.words {
+		if i >= len(r.words) {
+			length = i
+			break
+		}
+		r.words[i] |= cword
+	}
+	if length != 0 {
+		r.words = append(r.words, c.words[length:]...)
+	}
+}
+
+// Intersect r = r & c
+// elements both in r and c
+// r must have the same range of c
+func (r *RBitmap) Intersect(c *RBitmap) {
+	if r.start != c.start || r.end != c.end {
+		return
+	}
+	for i, cwords := range c.words {
+		if i >= len(r.words) {
+			break
+		}
+		r.words[i] &= cwords
+	}
+	if len(c.words) < len(r.words) {
+		r.words = r.words[:len(c.words)]
+	}
+}
+
+// Except r = r - c
+// elements only in r
+// r must have the same range of c
+func (r *RBitmap) Except(c *RBitmap) {
+	if r.start != c.start || r.end != c.end {
+		return
+	}
+	for i, cwords := range c.words {
+		if i >= len(r.words) {
+			break
+		}
+		r.words[i] &^= cwords
+	}
+}
+
+// SymExcept r = (r - c) | (c - r)
+// elements only in r or only in c
+// r must have the same range of c
+func (r *RBitmap) SymExcept(c *RBitmap) {
+	if r.start != c.start || r.end != c.end {
+		return
+	}
+	length := 0
+	for i, cwords := range c.words {
+		if i >= len(r.words) {
+			length = i
+			break
+		}
+		r.words[i] = (r.words[i] &^ cwords) | (cwords &^ r.words[i])
+	}
+	if length != 0 {
+		r.words = append(r.words, c.words[length:]...)
 	}
 }
 
@@ -188,28 +366,28 @@ func NewC(n int) *CBitmap {
 		return nil
 	}
 	numSize := int(math.Log2(float64(n)))
-	cb := CBitmap{}
-	cb.len = 0
-	cb.n = n
-	cb.numSize = numSize + 1
-	cb.bitSize = bitSize / cb.numSize
-	cb.mask = (1 << bitInt(cb.numSize)) - 1
-	cb.words = make([]bitInt, bitmapSize)
-	return &cb
+	c := CBitmap{}
+	c.len = 0
+	c.n = n
+	c.numSize = numSize + 1
+	c.bitSize = bitSize / c.numSize
+	c.mask = (1 << bitInt(c.numSize)) - 1
+	c.words = make([]bitInt, bitmapSize)
+	return &c
 }
 
 // String return formated string of bitmap
-func (cb *CBitmap) String() string {
+func (c *CBitmap) String() string {
 	var buf bytes.Buffer
 	buf.WriteByte('{')
-	for i, word := range cb.words {
+	for i, word := range c.words {
 		if word != 0 {
-			for j := 0; j < cb.bitSize; j += cb.numSize {
-				if word&(bitInt(cb.mask<<bitInt(j))) != 0 {
+			for j := 0; j < c.bitSize; j += c.numSize {
+				if word&(bitInt(c.mask<<bitInt(j))) != 0 {
 					if buf.Len() > len("{") {
 						buf.WriteByte(' ')
 					}
-					fmt.Fprintf(&buf, "%d", cb.bitSize*i+j/cb.numSize)
+					fmt.Fprintf(&buf, "%d", c.bitSize*i+j/c.numSize)
 				}
 			}
 		}
@@ -219,96 +397,245 @@ func (cb *CBitmap) String() string {
 }
 
 // Len return numbers in bitmap
-func (cb *CBitmap) Len() int {
-	return cb.len
+func (c *CBitmap) Len() int {
+	return c.len
 }
 
 // Has return true if x is in the bitmap
-func (cb *CBitmap) Has(x int) bool {
+func (c *CBitmap) Has(x int) bool {
 	if x < 0 {
 		return false
 	}
-	word, bit := x/cb.bitSize, bitInt(x%cb.bitSize*cb.numSize)
-	return word < len(cb.words) && cb.words[word]&(1<<bit) != 0
+	word, bit := x/c.bitSize, bitInt(x%c.bitSize*c.numSize)
+	return word < len(c.words) && c.words[word]&(1<<bit) != 0
 }
 
 // Add add x to the bitmap
-func (cb *CBitmap) Add(x int) {
+func (c *CBitmap) Add(x int) {
 	if x < 0 {
 		return
 	}
-	word, bit := x/cb.bitSize, bitInt(x%cb.bitSize*cb.numSize)
-	if word >= len(cb.words) {
-		cb.words = append(cb.words, make([]bitInt, word+1-len(cb.words))...)
+	word, bit := x/c.bitSize, bitInt(x%c.bitSize*c.numSize)
+	if word >= len(c.words) {
+		c.words = append(c.words, make([]bitInt, word+1-len(c.words))...)
 	}
-	numSize := bitInt(cb.mask << bit)
-	if cb.words[word]&numSize == 0 {
-		cb.len++
+	numSize := bitInt(c.mask << bit)
+	if c.words[word]&numSize == 0 {
+		c.len++
 	}
-	if ((cb.words[word] & numSize) >> bit) != bitInt(cb.mask) {
-		cb.words[word] += 1 << bit
+	if ((c.words[word] & numSize) >> bit) != bitInt(c.mask) {
+		c.words[word] += 1 << bit
 	}
 }
 
 // Remove remove x in bitmap
-func (cb *CBitmap) Remove(x int) {
+func (c *CBitmap) Remove(x int) {
 	if x < 0 {
 		return
 	}
-	word, bit := x/cb.bitSize, bitInt(x%cb.bitSize*cb.numSize)
-	if word < len(cb.words) {
-		numSize := bitInt(cb.mask << bit)
-		if cb.words[word]&numSize != 0 {
-			cb.words[word] -= 1 << bit
-			if cb.words[word]&numSize == 0 {
-				cb.len--
+	word, bit := x/c.bitSize, bitInt(x%c.bitSize*c.numSize)
+	if word < len(c.words) {
+		numSize := bitInt(c.mask << bit)
+		if c.words[word]&numSize != 0 {
+			c.words[word] -= 1 << bit
+			if c.words[word]&numSize == 0 {
+				c.len--
 			}
 		}
 	}
 }
 
 // Count return the numSize of x elements
-func (cb *CBitmap) Count(x int) int {
+func (c *CBitmap) Count(x int) int {
 	if x < 0 {
 		return 0
 	}
-	word, bit := x/cb.bitSize, bitInt(x%cb.bitSize*cb.numSize)
-	if word >= len(cb.words) {
+	word, bit := x/c.bitSize, bitInt(x%c.bitSize*c.numSize)
+	if word >= len(c.words) {
 		return 0
 	}
-	numSize := bitInt(cb.mask << bit)
-	return int((numSize & cb.words[word]) >> bit)
+	numSize := bitInt(c.mask << bit)
+	return int((numSize & c.words[word]) >> bit)
 }
 
 // RemoveAll remove x in bitmap
-func (cb *CBitmap) RemoveAll(x int) {
+func (c *CBitmap) RemoveAll(x int) {
 	if x < 0 {
 		return
 	}
-	word, bit := x/cb.bitSize, bitInt(x%cb.bitSize*cb.numSize)
-	if word < len(cb.words) {
-		numSize := bitInt(cb.mask << bit)
-		if cb.words[word]&numSize != 0 {
-			cb.len--
-			cb.words[word] &^= numSize
+	word, bit := x/c.bitSize, bitInt(x%c.bitSize*c.numSize)
+	if word < len(c.words) {
+		numSize := bitInt(c.mask << bit)
+		if c.words[word]&numSize != 0 {
+			c.len--
+			c.words[word] &^= numSize
 		}
 	}
 }
 
 // Clear make the bitmap empty
-func (cb *CBitmap) Clear() {
-	*cb = *NewC(cb.n)
+func (c *CBitmap) Clear() {
+	*c = *NewC(c.n)
 }
 
 // Copy return a copy bitmap
-func (cb *CBitmap) Copy() *CBitmap {
+func (c *CBitmap) Copy() *CBitmap {
 	new := CBitmap{}
-	new.len = cb.len
-	new.n = cb.n
-	new.mask = cb.mask
-	new.bitSize = cb.bitSize
-	new.numSize = cb.numSize
-	new.words = make([]bitInt, len(cb.words))
-	copy(new.words, cb.words)
+	new.len = c.len
+	new.n = c.n
+	new.mask = c.mask
+	new.bitSize = c.bitSize
+	new.numSize = c.numSize
+	new.words = make([]bitInt, len(c.words))
+	copy(new.words, c.words)
+	return &new
+}
+
+// RCBitmap is a bitSet count in [start, end)
+type RCBitmap struct {
+	len        int
+	n          int
+	start, end int
+	bitSize    int
+	mask       int
+	numSize    int
+	words      []bitInt
+}
+
+// NewRC return a new bitmap count [start, end)
+func NewRC(start int, end int, n int) *RCBitmap {
+	if n <= 0 || n > (1<<(bitSize-1)-1) || start >= end {
+		return nil
+	}
+	numSize := int(math.Log2(float64(n)))
+	rc := RCBitmap{}
+	rc.len = 0
+	rc.n = n
+	rc.start, rc.end = start, end
+	rc.numSize = numSize + 1
+	rc.bitSize = bitSize / rc.numSize
+	rc.mask = (1 << bitInt(rc.numSize)) - 1
+	rc.words = make([]bitInt, bitmapSize)
+	return &rc
+}
+
+// String return formated string of bitmap
+func (rc *RCBitmap) String() string {
+	var buf bytes.Buffer
+	buf.WriteByte('{')
+	for i, word := range rc.words {
+		if word != 0 {
+			for j := 0; j < rc.bitSize; j += rc.numSize {
+				if word&(bitInt(rc.mask<<bitInt(j))) != 0 {
+					if buf.Len() > len("{") {
+						buf.WriteByte(' ')
+					}
+					fmt.Fprintf(&buf, "%d", rc.start+rc.bitSize*i+j/rc.numSize)
+				}
+			}
+		}
+	}
+	buf.WriteByte('}')
+	return buf.String()
+}
+
+// Len return numbers in bitmap
+func (rc *RCBitmap) Len() int {
+	return rc.len
+}
+
+// Has return true if x is in the bitmap
+func (rc *RCBitmap) Has(x int) bool {
+	if x < rc.start || x >= rc.end {
+		return false
+	}
+	x -= rc.start
+	word, bit := x/rc.bitSize, bitInt(x%rc.bitSize*rc.numSize)
+	return word < len(rc.words) && rc.words[word]&(1<<bit) != 0
+}
+
+// Add add x to the bitmap
+func (rc *RCBitmap) Add(x int) {
+	if x < rc.start || x >= rc.end {
+		return
+	}
+	x -= rc.start
+	word, bit := x/rc.bitSize, bitInt(x%rc.bitSize*rc.numSize)
+	if word >= len(rc.words) {
+		rc.words = append(rc.words, make([]bitInt, word+1-len(rc.words))...)
+	}
+	numSize := bitInt(rc.mask << bit)
+	if rc.words[word]&numSize == 0 {
+		rc.len++
+	}
+	if ((rc.words[word] & numSize) >> bit) != bitInt(rc.mask) {
+		rc.words[word] += 1 << bit
+	}
+}
+
+// Remove remove x in bitmap
+func (rc *RCBitmap) Remove(x int) {
+	if x < rc.start || x >= rc.end {
+		return
+	}
+	x -= rc.start
+	word, bit := x/rc.bitSize, bitInt(x%rc.bitSize*rc.numSize)
+	if word < len(rc.words) {
+		numSize := bitInt(rc.mask << bit)
+		if rc.words[word]&numSize != 0 {
+			rc.words[word] -= 1 << bit
+			if rc.words[word]&numSize == 0 {
+				rc.len--
+			}
+		}
+	}
+}
+
+// Count return the numSize of x elements
+func (rc *RCBitmap) Count(x int) int {
+	if x < rc.start || x >= rc.end {
+		return 0
+	}
+	x -= rc.start
+	word, bit := x/rc.bitSize, bitInt(x%rc.bitSize*rc.numSize)
+	if word >= len(rc.words) {
+		return 0
+	}
+	numSize := bitInt(rc.mask << bit)
+	return int((numSize & rc.words[word]) >> bit)
+}
+
+// RemoveAll remove x in bitmap
+func (rc *RCBitmap) RemoveAll(x int) {
+	if x < rc.start || x >= rc.end {
+		return
+	}
+	x -= rc.start
+	word, bit := x/rc.bitSize, bitInt(x%rc.bitSize*rc.numSize)
+	if word < len(rc.words) {
+		numSize := bitInt(rc.mask << bit)
+		if rc.words[word]&numSize != 0 {
+			rc.len--
+			rc.words[word] &^= numSize
+		}
+	}
+}
+
+// Clear make the bitmap empty
+func (rc *RCBitmap) Clear() {
+	*rc = *NewRC(rc.start, rc.end, rc.n)
+}
+
+// Copy return a copy bitmap
+func (rc *RCBitmap) Copy() *RCBitmap {
+	new := RCBitmap{}
+	new.len = rc.len
+	new.n = rc.n
+	new.start, new.end = rc.start, rc.end
+	new.mask = rc.mask
+	new.bitSize = rc.bitSize
+	new.numSize = rc.numSize
+	new.words = make([]bitInt, len(rc.words))
+	copy(new.words, rc.words)
 	return &new
 }
