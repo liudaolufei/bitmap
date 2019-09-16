@@ -1,6 +1,7 @@
 # bitmap
 bitmap for go. Bitmap is a suitable data structure to count integer in certain range, it uses one bit to represent one integer.
-Here I implement a bitmap in golang. Here is the bitmap interface:
+Here I implement a bitmap in golang, it's fast and space efficient.
+Here is the bitmap interface:
 ```go
 type Bitmap interface {
 	Add(x int)     // add x to bitmap
