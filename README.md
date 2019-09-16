@@ -11,7 +11,11 @@ type Bitmap interface {
 	Clear()        // clear bitmap to free memory
 }
 ```
-I implement two type of bitmap:
+I implement four type of bitmap:
+* `NBitmap`: normal bitmap, including set operation, use `New()` to get it.
+* `RBitmap`: range bitmap, including set operation, use `NewR(start, end)` to get it.
+* `CBitmap`: bitmap that can count elements, use `NewC(n)` to get it.
+* `RCBitmap`: range bitmap that can count elements, use `NewRC(start, end, n)` to get it.
 # NBitmap
 NBitmap is normal bitmap, including set operation.
 ```go
@@ -25,15 +29,12 @@ b.String() // {10 100}
 // Length
 b.Len() // 2
 // check if has the elements
-if b.Has(100) {
-    // code
-}
+if b.Has(100) {/* code */}
 // Remove elements
 b.Remove(10)
 // Clear bitmap
 // do this to manually free memory
 b.Clear()
-
 // operation for sets
 c := bitmap.New()
 // Union b |= c
@@ -49,11 +50,17 @@ b.Except(c)
 // elements only in b or only in c
 b.SymExcept(c)
 ```
+# RBitmap
+RBitmap is a range bitmap, it's similar to NBitmap, all elements should be in the range.
+##notice##: set operations can only work on two bitmap with same range.
+```go
+b := bitmap.NewR(0, 5) // this bitmap is used to count [0, 4]
+```
 # CBitmap
 CBitmap is a bitmap that can count elements.
 ```go
-// get a new bitmap of CBitmap
-b := bitmap.NewC()
+// get a new bitmap of CBitmap, it can count to 5
+b := bitmap.NewC(5)
 // add elements
 b.Add(10)
 b.Add(10)
@@ -66,13 +73,16 @@ b.String() // {10 100}
 // Length
 b.Len() // 2
 // check if has the elements
-if b.Has(100) {
-    // code
-}
+if b.Has(100) {/* code */}
 // Remove elements
 b.Remove(10)
 b.RemoveAll(10)
 // Clear bitmap
 // do this to manually free memory
 b.Clear()
+```
+# RCBitmap
+RCBitmap is a range CBitmap
+```go
+b := bitmap.NewRC(0, 5, 4) // count [0, 4], the max count number is 4.
 ```
