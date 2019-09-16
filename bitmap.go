@@ -15,11 +15,11 @@ const (
 
 // Bitmap is the interface of bitSet
 type Bitmap interface {
-	Add(x int)
-	Has(x int)
-	Remove(x int)
-	Len() int
-	Clear()
+	Add(x int)    // add x to bitmap
+	Has(x int)    // return true if x is in bitmap
+	Remove(x int) // remove x in bitmap
+	Len() int     // return length of bitmap
+	Clear()       // clear bitmap to free memory
 }
 
 // NBitmap is a normal bitSet
