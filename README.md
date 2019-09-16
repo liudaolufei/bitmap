@@ -52,7 +52,7 @@ b.SymExcept(c)
 ```
 # RBitmap
 RBitmap is a range bitmap, it's similar to NBitmap, all elements should be in the range.
-##notice##: set operations can only work on two bitmap with same range.
+notice: set operations can only work on two bitmap with same range.
 ```go
 b := bitmap.NewR(0, 5) // this bitmap is used to count [0, 4]
 ```
