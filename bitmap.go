@@ -353,7 +353,7 @@ func (r *RBitmap) SymExcept(c *RBitmap) {
 // CBitmap is a bitSet
 type CBitmap struct {
 	len     int
-	n       int
+	n       bitInt
 	bitSize int
 	mask    int
 	numSize int
@@ -368,7 +368,7 @@ func NewC(n int) *CBitmap {
 	numSize := int(math.Log2(float64(n)))
 	c := CBitmap{}
 	c.len = 0
-	c.n = n
+	c.n = bitInt(n)
 	c.numSize = numSize + 1
 	c.bitSize = bitSize / c.numSize
 	c.mask = (1 << bitInt(c.numSize)) - 1
@@ -423,7 +423,7 @@ func (c *CBitmap) Add(x int) {
 	if c.words[word]&numSize == 0 {
 		c.len++
 	}
-	if ((c.words[word] & numSize) >> bit) != bitInt(c.mask) {
+	if ((c.words[word] & numSize) >> bit) < c.n {
 		c.words[word] += 1 << bit
 	}
 }
@@ -475,7 +475,7 @@ func (c *CBitmap) RemoveAll(x int) {
 
 // Clear make the bitmap empty
 func (c *CBitmap) Clear() {
-	*c = *NewC(c.n)
+	*c = *NewC(int(c.n))
 }
 
 // Copy return a copy bitmap
@@ -494,7 +494,7 @@ func (c *CBitmap) Copy() *CBitmap {
 // RCBitmap is a bitSet count in [start, end)
 type RCBitmap struct {
 	len        int
-	n          int
+	n          bitInt
 	start, end int
 	bitSize    int
 	mask       int
@@ -510,7 +510,7 @@ func NewRC(start int, end int, n int) *RCBitmap {
 	numSize := int(math.Log2(float64(n)))
 	rc := RCBitmap{}
 	rc.len = 0
-	rc.n = n
+	rc.n = bitInt(n)
 	rc.start, rc.end = start, end
 	rc.numSize = numSize + 1
 	rc.bitSize = bitSize / rc.numSize
@@ -568,7 +568,7 @@ func (rc *RCBitmap) Add(x int) {
 	if rc.words[word]&numSize == 0 {
 		rc.len++
 	}
-	if ((rc.words[word] & numSize) >> bit) != bitInt(rc.mask) {
+	if ((rc.words[word] & numSize) >> bit) < rc.n {
 		rc.words[word] += 1 << bit
 	}
 }
@@ -623,7 +623,7 @@ func (rc *RCBitmap) RemoveAll(x int) {
 
 // Clear make the bitmap empty
 func (rc *RCBitmap) Clear() {
-	*rc = *NewRC(rc.start, rc.end, rc.n)
+	*rc = *NewRC(rc.start, rc.end, int(rc.n))
 }
 
 // Copy return a copy bitmap
