@@ -246,20 +246,23 @@ func TestCCopy(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	b := bitmap.NewC(3)
+	b := bitmap.NewC(4)
 	b.Add(-1)
 	b.Add(0)
 	b.Add(1)
 	b.Add(2)
 	b.Add(2)
 	b.Add(2)
+	b.Add(2)
+	b.Add(2)
+	b.Add(2)
 	b.Add(1)
 	b.Add(10000)
-	if b.Count(-1) != 0 || b.Count(2) != 3 || b.Count(1) != 2 {
+	if b.Count(-1) != 0 || b.Count(2) != 4 || b.Count(1) != 2 {
 		t.Errorf("TestCount Add failed.")
 	}
 	b.Remove(2)
-	if b.Count(2) != 2 {
+	if b.Count(2) != 3 {
 		t.Errorf("TestCount Remove failed.")
 	}
 	b.RemoveAll(1)
